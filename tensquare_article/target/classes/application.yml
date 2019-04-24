@@ -1,0 +1,29 @@
+server: 
+  port: 9004
+spring: 
+  application:  
+    name: tensquare-article #指定服务名
+  datasource:  
+    driverClassName: com.mysql.jdbc.Driver
+    url: jdbc:mysql://47.107.71.209:3306/tensquare_article?characterEncoding=UTF-8&useSSL=false
+    username: root
+    password: tensquare123456
+  jpa: 
+    database: MySQL
+    show-sql: true
+  redis:
+    host: 47.106.120.224
+  data:
+    mongodb:
+      host: 47.106.120.224
+      database: recruitdb
+jwt:
+  config:
+     key: helloKitty
+
+eureka:
+  client:
+    service‐url:
+      defaultZone: http://localhost:6868/eureka
+  instance:
+     prefer-ip-address: true

@@ -1,0 +1,529 @@
+
+当初是这样选中课设这样一个题目的，看到有关于Python这样的题目（基于Python的数据采集器），就很想报，刚好同学找的我，想和我一起组个队一起搞毕设，所以我就说要不我们一起报这个（基于Python的数据采集器）题目，后来一拍而成，就妥妥的报了这个课题。所以才有了后来一系列的学习的文章，还有现在这篇文章，基本上在这个项目当中，我是一个技术指导者吧（也没那么牛逼啦，只是我可能比他们早接触编程吧，比我队友懂多了一点吧，我实在是很垃圾啦）。
+首先我们决定使用的是一个小车搭载一个摄像头进行识别，最后添加了温湿度提取显示在页面上。
+我们使用的是树莓派这款片上系统编程，驱动小车运动，摄像头识别，温度传感器dht22提取温湿度。
+
+首先我们使用Python这样的一个bottle框架来搭建我们的后台服务器，接下来我们来看看他们的基本用法
+第一步当然是安装
+
+$ wget http://bottlepy.org/bottle.py
+当然如果有安装Python 直接推荐如下安装方法
+
+$ sudo pip install bottle              # recommended
+$ sudo easy_install bottle             # alternative without pip
+$ sudo apt-get install python-bottle   # works for debian, ubuntu, ...
+windows安装
+在这里插入图片描述
+无论哪种方式, 您都需要安装好 2.5以上 (包含3.x)来运行 bottle 应用. 如果您没有权限在整个系统中安装这些包或者根本不想这么做，那可以先创建 virtualenv ：
+
+$ virtualenv develop              # Create virtual environment
+$ source develop/bin/activate     # Change default python to virtual one
+(develop)$ pip install -U bottle  # Install bottle to virtual environment
+如果您没有安装virtualenv ，可以通过以下方式安装：
+
+$ wget https://raw.github.com/pypa/virtualenv/master/virtualenv.py
+$ python virtualenv.py develop    # Create virtual environment
+$ source develop/bin/activate     # Change default python to virtual one
+(develop)$ pip install -U bottle  # Install bottle to virtual environment
+快速入门: “HELLO WORLD”
+
+from bottle import route, run
+
+@route('/hello')
+def hello():
+    return "Hello World!"
+
+run(host='localhost', port=8080, debug=True)
+在这里插入图片描述
+在这里插入图片描述
+代码很简单，运行这个脚本，访问 http://localhost:8080/hello 您可以在浏览器中看到 “Hello World!” 。 它的运行原理如下：
+
+route() 装饰器为URL地址绑定了一段代码，在这个例子中，我们关联了/hello 地址到 hello() 函数上。 这个叫route的(装饰器的名字) 是Bottle框架的最重要的概念。您可以定义任意多个 route。当浏览器请求一个URL地址，它所关联的函数就会被调用并返回相应的值给浏览器，原理比较简单。
+
+最后一行调用 run() 方法启动一个内置的开发环境用的服务器，运行在 localhost 8080 端口来为请求提供服务，可以按 Control-c来关闭它。以后你切换使用其他服务器，不过目前使用这个内置服务器就够用了，它不需要任何配置，并且以难以置信的无侵害方式使您的应用运行并且用于本地测试。
+
+默认应用
+为了简单起见，本教程中的例子都使用module-level route()装饰器来定义route. 它会将这些routes添加到一个全局的 “默认应用”,它是一个Bottle 的实例，当第一次调用 route()时候会自动创建。有很多其他的 module-level 装饰器和函数与默认应用相关，但是如果您喜欢更面向对象的方法和不介意额外的输入，您可以创建一个单独的应用程序对象，而不是使用全局的默认应用：
+
+from bottle import Bottle, run
+
+app = Bottle()
+
+@app.route('/hello')
+def hello():
+    return "Hello World!"
+
+run(app, host='localhost', port=8080)
+
+在这里插入图片描述
+请求路由
+
+@route('/hello')
+def hello():
+    return "Hello World!"
+
+route() 装饰器关联了一个URL 地址到一个回调函数，并添加了一个新的 route 到默认应用（ default application），一个应用只有一个路由太单调了，因此，我们增加一些 (不要忘记 from bottle import template):
+
+@route('/')
+@route('/hello/<name>')
+def greet(name='Stranger'):
+    return template('Hello {{name}}, how are you?', name=name)
+
+动态路由
+包含通配符的Route称为动态路由 (对比于静态路由) ，可以同时匹配不止一个 URL地址。一个简单的通配符由一个名称和一对中括号组成 (例如 ) ，接受下一个斜杠(/)前一个多多个字母。例如 路由/hello/ 接受请求/hello/alice和 /hello/bob,但不接受 /hello, /hello/ 或者/hello/mr/smith.
+
+每一个通配符将覆盖URL的一部分作为一个关键字参数，用于请求的回调函数。您可以使用它们轻松地实现基于RESTful的、代码整洁友好的、有意义的url。这里有一些其他的例子，展示他们匹配的url：
+
+@route('/wiki/<pagename>')            # matches /wiki/Learning_Python
+def show_wiki_page(pagename):
+    ...
+
+@route('/<action>/<user>')            # matches /follow/defnull
+def user_api(action, user):
+    ...
+0.10 版本后的新特性.
+
+使用过滤器是用来定义更具体的通配符，并且/或者 在传递给回调函数之前对参数进行转换。一个过滤通配符声明为name:filter orname:filter:config。可选配置部分的语法取决于所使用的过滤器。
+
+以下是默认实现的过滤器，以后可能会增加更多：
+
+:int matches (signed) digits only and converts the value to integer.
+:float similar to :int but for decimal numbers.
+:path matches all characters including the slash character in a non-greedy way and can be used to match more than one path segment.
+:re allows you to specify a custom regular expression in the config field. The matched value is not modified.
+让我们来看看一些实际的例子：
+
+@route('/object/<id:int>')
+def callback(id):
+    assert isinstance(id, int)
+
+@route('/show/<name:re:[a-z]+>')
+def callback(name):
+    assert name.isalpha()
+
+@route('/static/<path:path>')
+def callback(path):
+    return static_file(path, ...)
+您可以实现定制的过滤器，细节请参考 Request Routing .
+
+0.10版本更新.
+
+Bottle 0.10中引入的新规则语法，用来简化一些常见的用例，但是老语法仍然有效，你可以找到很多示例代码还使用它。下面例子描述了他们的差异：
+
+Old Syntax	New Syntax
+:name	<name>
+:name#regexp#	<name:re:regexp>
+:#regexp#	<:re:regexp>
+:##	<:re>
+在未来的项目中尽量避免使用旧语法，它目前还能使用,但最终会被弃用。
+
+HTTP请求方法
+HTTP协议定义了多种请求方法（request methods ，有时被称作“verbs”) 来实现不同的任务。当没有指定方法时，所有的routes路由都默认使用GET方法，这些路由只能匹配GET请求。如果要处理其他的请求如 POST, PUT, DELETE 或者 PATCH, 给route() 增加一个 method 关键字参数，或者使用四个替代装饰器： get(), post(), put(), delete() 或patch().
+
+POST方法通常用于 HTML 表单的提交，下面例子展示了如何使用POST处理一个登录表单:
+
+from bottle import get, post, request # or route
+
+@get('/login') # or @route('/login')
+def login():
+    return '''
+        <form action="/login" method="post">
+            Username: <input name="username" type="text" />
+            Password: <input name="password" type="password" />
+            <input value="Login" type="submit" />
+        </form>
+    '''
+
+@post('/login') # or @route('/login', method='POST')
+def do_login():
+    username = request.forms.get('username')
+    password = request.forms.get('password')
+    if check_login(username, password):
+        return "<p>Your login information was correct.</p>"
+    else:
+        return "<p>Login failed.</p>"
+这个小车大概就用到这样的一些用法
+
+1 小车行动的程序
+主要界面分为前进，后退，左转，右转，停止，五大功能
+前台界面使用 bootstrap 布局简单的界面
+前台主要代码如下：
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>遥控树莓派</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <script src="http://code.jquery.com/jquery.js"></script>
+    <style type="text/css">
+        #go {
+            margin-left: 55px;
+            margin-bottom: 3px;
+        }
+        #back {
+            margin-top: 3px;
+            margin-left: 55px;
+        }
+        .servo {
+            width: 200px;
+            height: 200px;
+            margin-top: 50px;
+        }
+    </style>
+
+</head>
+<body>
+<div id="container" class="container">
+    <div>
+        <button id="go" class="btn btn-lg btn-primary glyphicon glyphicon-circle-arrow-up"></button>
+    </div>
+    <div>
+        <button id='left' class="btn btn-lg btn-primary glyphicon glyphicon-circle-arrow-left"></button>
+        <button id='stop' class="btn btn-lg btn-primary glyphicon glyphicon-stop"></button>
+        <button id='right' class="btn btn-lg btn-primary glyphicon glyphicon-circle-arrow-right"></button>
+    </div>
+    <div>
+        <button id='back' class="btn btn-lg btn-primary glyphicon glyphicon-circle-arrow-down"></button>
+    </div>
+</div>
+<div class="servo">
+    <div>
+        <input type="range" id="upd" name="updown" min="10" max="150" step="20">
+        <label for="upd">左/右</label>
+    </div>
+    <div>
+        <input type="range" id="leftr" name="leftright" min="50" max="150" step="20">
+        <label for="leftr">上/下</label>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script>
+    var flag=true;
+        $(function(){
+            $("button").click(function(){
+                //cmd="{cmd:"+this.id+"}"
+                //alert(cmd)
+                $.post("/cmd",this.id,function(data,status){
+                });
+            });
+        });
+
+    $(document).keydown(function(event){
+    if(flag){
+                if(event.keyCode==38){
+          $.post("/cmd","go",function(data,status){
+        console.log("hello");
+        flag=false;
+        console.log(flag);
+            });
+        }else if(event.keyCode == 40){
+              $.post("/cmd","back",function(data,status){
+        flag=false;
+                });
+        }else if(event.keyCode == 37){
+          $.post("/cmd","left",function(data,status){
+        flag=false;
+                });
+        }else if(event.keyCode == 39){
+          $.post("/cmd","right",function(data,status){
+        flag=false;
+                });
+        }else{
+          alert("hello");
+        }
+        }
+    });
+    $(document).keyup(function(event){
+
+        if(event.keyCode==38){
+          $.post("/cmd","stop",function(data,status){
+        flag=true;
+            });
+        }else if(event.keyCode == 40){
+              $.post("/cmd","stop",function(data,status){
+        flag=true;
+                });
+        }else if(event.keyCode == 37){
+          $.post("/cmd","stop",function(data,status){
+        flag=true;
+                });
+        }else if(event.keyCode == 39){
+          $.post("/cmd","stop",function(data,status){
+        flag=true;
+                });
+        }else{
+          alert("hello");
+        }
+    });
+    $("#upd").on("input propertychange",function(){
+        $.post("/ser",{val: $("#upd").val(), flag:0},function(data,status){
+
+		console.log(data)
+		console.log(status)
+        });
+	console.log($("#upd").val());
+    }).on("mouseup",function(){
+         $.post("/ser",{val: $("#upd").val(), flag:1},function(data,status){
+
+		console.log(data)
+		console.log(status)
+        });
+    });
+    $("#leftr").on("input propertychange",function(){
+        $.post("/serud",{val: $("#leftr").val(), flag:0},function(data,status){
+
+		console.log(data)
+		console.log(status)
+        });
+	console.log($("#upd").val());
+    }).on("mouseup",function(){
+         $.post("/ser",{val: $("#leftr").val(), flag:1},function(data,status){
+
+		console.log(data)
+		console.log(status)
+        });
+    }); ;
+    </script>
+</body>
+</html>
+车子的的电机驱动模块是L298N这个模块，
+1 他的主电源正极为 12 V 电压
+2 他主要有四个引脚分别为 IN1，IN2，IN3，IN4，这里我们链接在树莓派的11,12,13,15号引脚。
+3 5V 输入我是从 2 号引脚拉出来的
+4 通道A，B 用于连接电机的，有一个是正极输出，一个是负极输出。
+
+接下来就是我们给小车的驱动代码
+
+#!/usr/bin/env python3
+# _*_ coding: utf-8 _*_
+from bottle import get,post,run,request,template
+#导入gpio的模块
+import RPi.GPIO as GPIO
+import time
+
+#定义小车驱动引脚号
+IN1 = 11
+IN2 = 12
+IN3 = 13
+IN4 = 15
+#定义引脚号
+ServoPinlr = 23
+ServoPinud = 26
+
+#设置GPIO口为BOARD编码方式
+GPIO.setmode(GPIO.BOARD)
+
+#忽略警告信息
+GPIO.setwarnings(False)
+
+# 初始化摄像头的PWM波
+def inits():
+    global pwm_servo1
+    global pwm_servo2
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(ServoPinlr, GPIO.OUT)
+    GPIO.setup(ServoPinud, GPIO.OUT)
+    #设置pwm引脚和频率为50hz
+    pwm_servo1 = GPIO.PWM(ServoPinud, 50)
+    pwm_servo2 = GPIO.PWM(ServoPinlr, 50)
+    pwm_servo1.start(0)
+    pwm_servo2.start(0)
+
+inits()
+# 控制摄像头左右转动
+def servo_control1(pos):
+		# 设置PWM 波的占空比
+        pwm_servo1.ChangeDutyCycle(2.5 + 10 * pos/180)
+# 控制摄像头上下转动
+def servo_control2(pos):
+        # 设置PWM波的占空比
+        pwm_servo2.ChangeDutyCycle(2.5 + 10 * pos/180)
+#设置GPIO口的输出方式
+def init():
+	#设置gpio口的模式 注意
+	GPIO.setmode(GPIO.BOARD)
+	GPIO.setup(IN1,GPIO.OUT)
+	GPIO.setup(IN2,GPIO.OUT)
+	GPIO.setup(IN3,GPIO.OUT)
+	GPIO.setup(IN4,GPIO.OUT)
+
+# 左转函数
+def left():
+	GPIO.output(IN1,False)
+	GPIO.output(IN2,False)
+	GPIO.output(IN3,GPIO.HIGH)
+	GPIO.output(IN4,GPIO.LOW)
+
+# 右转
+def right():
+	GPIO.output(IN1,GPIO.HIGH)
+	GPIO.output(IN2,GPIO.LOW)
+	GPIO.output(IN3,False)
+	GPIO.output(IN4,False)
+
+# 前进
+def go():
+	GPIO.output(IN1,GPIO.HIGH)
+	GPIO.output(IN2,GPIO.LOW)
+	GPIO.output(IN3,GPIO.HIGH)
+	GPIO.output(IN4,GPIO.LOW)
+
+# 后退
+def back():
+	GPIO.output(IN1,GPIO.LOW)
+	GPIO.output(IN2,GPIO.HIGH)
+	GPIO.output(IN3,GPIO.LOW)
+	GPIO.output(IN4,GPIO.HIGH)
+	#GPIO.cleanup()#释放GPIO口
+
+# 停止
+def stop():
+	GPIO.output(IN1,GPIO.LOW)
+	GPIO.output(IN2,GPIO.LOW)
+	GPIO.output(IN3,GPIO.LOW)
+	GPIO.output(IN4,GPIO.LOW)
+
+#GPIO.cleanup()#释放GPIO口
+
+@get("/")
+def index():
+    return template("index")
+@post("/cmd")
+def cmd():
+	# 在这里判断要判断前台的按键按下了那个按键
+	# 根据按键来响应哪些事件
+	# 获取前台按下按钮传过来的this.id
+	# 根据this.id判断执行那个函数
+	# 我猜测request对象应该有一个实例化方法可以查询前台post过来的字段的
+    #  print("按下了按钮: "+request.body.read().decode())
+    init() # 初始化板和引脚
+    param = request.body.read().decode();
+    print(param)
+    if param == 'go':
+    	go()
+    if param == 'back':
+    	back()
+    if param == 'left':
+    	left()
+    if param == 'right':
+    	right()
+    if param == 'stop':
+    	stop()
+    return "OK"
+@post("/ser")
+def ser():
+    try:#舵机left/right
+        #pos = request.body.read().decode();
+        pos = int(request.forms.get('val'))
+        flag = int(request.forms.get('flag'))
+	if not flag:
+            pwm_servo1.start(0)
+            servo_control1(pos)
+            print(pos)
+        else:
+            pwm_servo1.stop()
+            pwm_servo1.start(0)
+    except KeyboardInterrupt:
+        pass
+    #GPIO.cleanup()
+@post("/serud")
+def serud():
+    try:
+        pos = int(request.forms.get('val'))
+        flag = int(request.forms.get('flag'))
+	if not flag:
+            pwm_servo2.start(0)
+            servo_control2(pos)
+            print(pos)
+        else:
+            pwm_servo2.stop()
+            pwm_servo2.start(0)
+    except KeyboardInterrupt:
+        pass
+    #GPIO.cleanup()
+run(host="0.0.0.0",port="1025")
+小车完成驱动源码已经上传到git
+树莓派小车源码
+
+今天把dht22传感器 提取温湿度也完成了
+DHT22 温湿度传感器尽管不是使用效率最高的温湿度传感器，但价格便宜被广泛应用。下面我们介绍另一种基于Adafruit DHT 库读取 DHT22 数据的方法。
+
+DHT22 规格
+DHT22 有四个引脚，但是其中一个没有被使用到。所有有的模块会简化成3个引脚。
+
+在这里插入图片描述
+湿度检测范围 : 20-80% (5% 精度)
+温度检测范围 : 0-50°C (±2°C 精度)
+该厂商不建议读取频率小于2秒，如果这么做数据可能会有误。
+
+硬件连接
+
+在这里插入图片描述
+需要在电源和数据脚之间串联一个上拉电阻(4.7K-10K)，通常情况下，购买DHT11模块的话都自带了这个电阻。不同的模块型号引脚位置略有不同，下面以图上模块为说明：
+
+DHT Pin	Signal	Pi Pin
+1	3.3V	1
+2	Data/Out	11 (GPIO17)
+3	not used	–
+4	Ground	6 or 9
+数据引脚可以根据你的需要自行修改。
+
+Python 库
+D在这里插入图片描述
+DHT22 的读取需要遵循特定的信号协议完成，为了方便我们使用Adafruit DHT 库。
+
+软件安装
+开始之前需要更新软件包：
+
+sudo apt-get update
+sudo apt-get install build-essential python-dev
+从 GitHub 获取 Adafruit 库：
+
+sudo git clone https://github.com/adafruit/Adafruit_Python_DHT.git
+cd Adafruit_Python_DHT
+给 Python 2 和 Python 3 安装该库：
+
+sudo python setup.py install
+sudo python3 setup.py install
+Adafruit 提供了示例程序，运行下面的命令测试。
+
+cd ~
+cd Adafruit_Python_DHT
+cd examples
+python AdafruitDHT.py 11 17
+这两个参数分别表示 DHT22 和数据引脚所接的树莓派 GPIO 编号。成功的话会输出：
+
+Temp=22.0* Humidity=68.0%
+
+如何在其他 Python 程序中使用这个库
+参照下面的方法引入 Adafruit 库，然后就可以使用 “read_retry” 方法来读取 DHT11 的数据了：
+
+import Adafruit_DHT
+
+# Set sensor type : Options are DHT11,DHT22 or AM2302
+sensor=Adafruit_DHT.DHT11
+
+# Set GPIO sensor is connected to
+gpio=17
+
+# Use read_retry method. This will retry up to 15 times to
+# get a sensor reading (waiting 2 seconds between each retry).
+humidity, temperature = Adafruit_DHT.read_retry(sensor, gpio)
+
+# Reading the DHT11 is very sensitive to timings and occasionally
+# the Pi might fail to get a valid reading. So check if readings are valid.
+if humidity is not None and temperature is not None:
+  print('Temp={0:0.1f}*C  Humidity={1:0.1f}%'.format(temperature, humidity))
+else:
+  print('Failed to get reading. Try again!')```
+最终温湿度检测源码如下
+dht22源码
+
+最终的界面如下，界面暂时样式还没有调整好，所以丑
+在这里插入图片描述
+
+Html5
+

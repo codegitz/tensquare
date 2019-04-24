@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>遥控树莓派</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <script src="http://code.jquery.com/jquery.js"></script>
+    <style type="text/css">
+        #go {
+            margin-left: 55px;
+            margin-bottom: 3px;
+        }
+        #back {
+            margin-top: 3px;
+            margin-left: 55px;
+        }
+        .servo {
+            width: 200px;
+            height: 200px;
+            margin-top: 50px;
+        }
+    </style>
+
+</head>
+<body>
+<div id="container" class="container">
+    <div>
+        <button id="go" class="btn btn-lg btn-primary glyphicon glyphicon-circle-arrow-up"></button>
+    </div>
+    <div>
+        <button id='left' class="btn btn-lg btn-primary glyphicon glyphicon-circle-arrow-left"></button>
+        <button id='stop' class="btn btn-lg btn-primary glyphicon glyphicon-stop"></button>
+        <button id='right' class="btn btn-lg btn-primary glyphicon glyphicon-circle-arrow-right"></button>
+    </div>
+    <div>
+        <button id='back' class="btn btn-lg btn-primary glyphicon glyphicon-circle-arrow-down"></button>
+    </div>
+</div>
+<div class="servo">
+    <div>
+        <input type="range" id="upd" name="updown" min="10" max="150" step="20">
+        <label for="upd">左/右</label>
+    </div>
+    <div>
+        <input type="range" id="leftr" name="leftright" min="50" max="150" step="20">
+        <label for="leftr">上/下</label>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script>
+    var flag=true;
+    $(function(){
+        $("button").click(function(){
+            //cmd="{cmd:"+this.id+"}"
+            //alert(cmd)
+            $.post("/cmd",this.id,function(data,status){
+            });
+        });
+    });
+
+    $(document).keydown(function(event){
+        if(flag){
+            if(event.keyCode==38){
+                $.post("/cmd","go",function(data,status){
+                    console.log("hello");
+                    flag=false;
+                    console.log(flag);
+                });
+            }else if(event.keyCode == 40){
+                $.post("/cmd","back",function(data,status){
+                    flag=false;
+                });
+            }else if(event.keyCode == 37){
+                $.post("/cmd","left",function(data,status){
+                    flag=false;
+                });
+            }else if(event.keyCode == 39){
+                $.post("/cmd","right",function(data,status){
+                    flag=false;
+                });
+            }else{
+                alert("hello");
+            }
+        }
+    });
+    $(document).keyup(function(event){
+
+        if(event.keyCode==38){
+            $.post("/cmd","stop",function(data,status){
+                flag=true;
+            });
+        }else if(event.keyCode == 40){
+            $.post("/cmd","stop",function(data,status){
+                flag=true;
+            });
+        }else if(event.keyCode == 37){
+            $.post("/cmd","stop",function(data,status){
+                flag=true;
+            });
+        }else if(event.keyCode == 39){
+            $.post("/cmd","stop",function(data,status){
+                flag=true;
+            });
+        }else{
+            alert("hello");
+        }
+    });
+    $("#upd").on("input propertychange",function(){
+        $.post("/ser",{val: $("#upd").val(), flag:0},function(data,status){
+
+            console.log(data)
+            console.log(status)
+        });
+        console.log($("#upd").val());
+    }).on("mouseup",function(){
+        $.post("/ser",{val: $("#upd").val(), flag:1},function(data,status){
+
+            console.log(data)
+            console.log(status)
+        });
+    });
+    $("#leftr").on("input propertychange",function(){
+        $.post("/serud",{val: $("#leftr").val(), flag:0},function(data,status){
+
+            console.log(data)
+            console.log(status)
+        });
+        console.log($("#upd").val());
+    }).on("mouseup",function(){
+        $.post("/ser",{val: $("#leftr").val(), flag:1},function(data,status){
+
+            console.log(data)
+            console.log(status)
+        });
+    }); ;
+</script>
+</body>
+</html>
